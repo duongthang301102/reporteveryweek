@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Calendar, Upload, ArrowRight, Menu, X, Check, AlertCircle } from 'lucide-react';
 import { saveTransactions, getAllTransactions, clearTransactions } from './db';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Sidebar from './components/Sidebar';
 import PhacoVangLai from './pages/PhacoVangLai';
@@ -303,6 +304,7 @@ function App() {
         <Route path="/data" element={ <MainLayout onClearData={handleOpenClearModal} activeMenuTitle="Dữ liệu chi tiết" category="vanglai" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <DataManagement data={rawExcelData} formatCurrency={formatCurrency} /> </MainLayout> } />
       </Routes>
       <ConfirmModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onConfirm={executeClearData} />
+      <SpeedInsights />
     </Router>
   );
 }
