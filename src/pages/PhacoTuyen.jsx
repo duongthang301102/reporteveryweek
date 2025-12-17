@@ -1,14 +1,17 @@
 import React from 'react';
 import ProductCard from '../components/ProductCard';
-import { Package, Users } from 'lucide-react';
+// 1. IMPORT ICON MỚI
+import { Package, Users, TrendingUp, TrendingDown } from 'lucide-react';
 
 const PhacoTuyen = ({ data, formatCurrency }) => {
+  // 2. CẬP NHẬT GROWTH BADGE DÙNG ICON
   const GrowthBadge = ({ value }) => {
     if (value === null || value === undefined) return null;
     const isPositive = value >= 0;
     return (
-        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-            {isPositive ? '↗' : '↘'} {Math.abs(Number(value).toFixed(1))}%
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+            {isPositive ? <TrendingUp size={12} strokeWidth={2.5} /> : <TrendingDown size={12} strokeWidth={2.5} />} 
+            {Math.abs(Number(value).toFixed(1))}%
         </span>
     );
   };
@@ -22,12 +25,10 @@ const PhacoTuyen = ({ data, formatCurrency }) => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 blur-3xl rounded-full pointer-events-none"></div>
         <p className="text-gray-400 text-[10px] md:text-sm font-medium uppercase tracking-wider mb-1 md:mb-2">Tổng Doanh Thu Tuyến ({data.summary.label})</p>
         
-        {/* DOANH THU LỚN */}
         <div className="mt-1 md:mt-2">
             <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{formatCurrency(summaryData.totalRevenue)}</h3>
         </div>
 
-        {/* DÒNG SO SÁNH */}
         <div className="flex items-center mt-2 md:mt-3 text-[11px] md:text-sm text-gray-500 gap-2 md:gap-3">
             {summaryData.percent !== null && <GrowthBadge value={summaryData.percent} />}
             {summaryData.compareRevenue !== null 

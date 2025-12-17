@@ -1,14 +1,17 @@
 import React from 'react';
 import ProductCard from '../components/ProductCard';
-import { Package, Users } from 'lucide-react';
+// 1. IMPORT ICON MỚI
+import { Package, Users, TrendingUp, TrendingDown } from 'lucide-react';
 
 const PhacoVangLai = ({ data, formatCurrency }) => {
+  // 2. CẬP NHẬT GROWTH BADGE DÙNG ICON
   const GrowthBadge = ({ value }) => {
     if (value === null || value === undefined) return null;
     const isPositive = value >= 0;
     return (
-        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-            {isPositive ? '↗' : '↘'} {Math.abs(Number(value).toFixed(1))}%
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+            {isPositive ? <TrendingUp size={12} strokeWidth={2.5} /> : <TrendingDown size={12} strokeWidth={2.5} />}
+            {Math.abs(Number(value).toFixed(1))}%
         </span>
     );
   };
@@ -22,7 +25,6 @@ const PhacoVangLai = ({ data, formatCurrency }) => {
         <p className="text-gray-400 text-[10px] md:text-sm font-medium uppercase tracking-wider mb-1 md:mb-2">Tổng Doanh Thu ({data.summary.label})</p>
         
         <div className="mt-1 md:mt-2">
-            {/* GIẢM FONT SIZE Ở ĐÂY: text-3xl trên mobile */}
             <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{formatCurrency(summaryData.totalRevenue)}</h3>
         </div>
 

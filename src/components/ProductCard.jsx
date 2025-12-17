@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Package, Users, ChevronDown, ChevronUp } from 'lucide-react';
+// 1. THÊM IMPORT ICON TrendingUp và TrendingDown
+import { Package, Users, ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 
 const ProductCard = ({ 
     title, subtitle, icon: IconParam, badge, 
@@ -17,10 +18,19 @@ const ProductCard = ({
         if (value === null || value === undefined) return null;
         const isPositive = value >= 0;
         return (
-            <p className={`text-[10px] md:text-xs font-medium flex flex-wrap items-center gap-1 ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {isPositive ? '↗' : '↘'} {Math.abs(Number(value).toFixed(1))}% 
-                <span className="text-gray-500 font-normal opacity-80">vs kỳ trước</span>
-            </p>
+            <div className={`text-[10px] md:text-xs font-medium flex flex-wrap items-center gap-1 ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {/* --- 2. THAY KÝ TỰ BẰNG ICON TẠI ĐÂY --- */}
+                {isPositive ? (
+                    <TrendingUp size={14} strokeWidth={2.5} /> 
+                ) : (
+                    <TrendingDown size={14} strokeWidth={2.5} />
+                )}
+                {/* --------------------------------------- */}
+                
+                <span>{Math.abs(Number(value).toFixed(1))}%</span>
+                
+                <span className="text-gray-500 font-normal opacity-80 ml-0.5">vs kỳ trước</span>
+            </div>
         );
     };
 

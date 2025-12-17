@@ -1,28 +1,31 @@
 import React from 'react';
-import { ClipboardList } from 'lucide-react';
+// 1. IMPORT ICON MỚI
+import { ClipboardList, TrendingUp, TrendingDown } from 'lucide-react';
 
 const ServiceReport = ({ data, formatCurrency }) => {
-  // Badge tăng trưởng (Responsive font size)
+  // 2. CẬP NHẬT GROWTH BADGE DÙNG ICON
   const GrowthBadge = ({ value }) => {
     if (value === null || value === undefined) return null;
     const isPositive = value >= 0;
     return (
-        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-            {isPositive ? '↗' : '↘'} {Math.abs(Number(value).toFixed(1))}%
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+            {isPositive ? <TrendingUp size={12} strokeWidth={2.5} /> : <TrendingDown size={12} strokeWidth={2.5} />}
+            {Math.abs(Number(value).toFixed(1))}%
         </span>
     );
   };
 
   return (
     <div className="animate-fade-in-up space-y-4 md:space-y-6">
-      {/* 1. THẺ TỔNG DOANH THU DỊCH VỤ */}
       <div className="bg-[#1C1E26] rounded-2xl p-5 md:p-8 relative overflow-hidden border border-gray-800 shadow-lg">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none"></div>
         <div className="flex items-center gap-3 mb-1 md:mb-2">
+            <div className="p-1.5 md:p-2 bg-emerald-500/10 rounded-lg">
+                <ClipboardList className="text-emerald-400" size={18} />
+            </div>
             <p className="text-gray-400 text-[10px] md:text-sm font-medium uppercase tracking-wider">Tổng Doanh Thu Dịch Vụ ({data.label})</p>
         </div>
         
-        {/* DOANH THU LỚN (Responsive Font) */}
         <div className="mt-1 md:mt-2">
             <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{formatCurrency(data.totalRevenue || 0)}</h3>
         </div>
@@ -36,13 +39,11 @@ const ServiceReport = ({ data, formatCurrency }) => {
         </div>
       </div>
 
-      {/* 2. BẢNG CHI TIẾT DỊCH VỤ (Có cuộn ngang trên mobile) */}
       <div className="bg-[#1C1E26] rounded-2xl border border-gray-800 overflow-hidden shadow-lg">
         <div className="p-4 md:p-6 border-b border-gray-800">
             <h3 className="text-base md:text-lg font-bold text-white">Chi tiết từng gói dịch vụ</h3>
         </div>
         
-        {/* Wrapper này giúp bảng cuộn ngang trên màn hình nhỏ */}
         <div className="overflow-x-auto">
             <table className="w-full text-[11px] md:text-sm text-left whitespace-nowrap">
                 <thead className="text-gray-400 uppercase bg-[#0F1115]">
