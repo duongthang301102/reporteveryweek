@@ -62,7 +62,7 @@ const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCusto
       
       <main className="flex-1 overflow-y-auto p-3 md:p-8 w-full relative">
         
-        {/* Overlay cho DatePicker (Z-Index thấp hơn Header) */}
+        {/* Overlay cho DatePicker */}
         {showDatePicker && (
             <div 
                 className="fixed inset-0 z-30 bg-black/80 md:bg-transparent transition-colors" 
@@ -70,7 +70,7 @@ const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCusto
             ></div>
         )}
 
-        {/* HEADER (Z-Index cao hơn Overlay để nút bấm được) */}
+        {/* HEADER */}
         <header className="flex flex-col gap-3 md:gap-4 mb-4 md:mb-6 relative z-40">
           
           {/* HÀNG 1: TIÊU ĐỀ & MENU */}
@@ -85,16 +85,14 @@ const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCusto
             <div className="flex flex-col">
                 <div className="hidden md:flex items-center gap-2 text-sm text-gray-400 mb-1"><span>Trang chủ</span> / <span className="text-white">Dashboard</span></div>
                 
-                {/* Tiêu đề căn chỉnh line-height */}
                 <h2 className="text-base sm:text-lg md:text-3xl font-bold truncate text-white leading-tight">
                     {activeMenuTitle}
                 </h2>
                 
-                {/* Dòng Note căn chỉnh sát tiêu đề */}
                 <div className="flex items-center gap-1.5 mt-0.5">
                     <AlertCircle size={12} className="text-amber-500 flex-shrink-0" />
-                    <p className="text-[10px] md:text-xs text-amber-500/90 italic font-medium leading-none pt-0.5">
-                        Lưu ý: Dữ liệu được cập nhật hàng tuần
+                    <p className="text-[10px] md:text-xs text-amber-500/90 italic font-medium leading-relaxed pt-0.5">
+                        Lưu ý: Dữ liệu được cập nhật hàng tuần, xem dữ liệu vào cuối thứ 7 hoặc chủ nhật sẽ chính xác nhất
                     </p>
                 </div>
             </div>
@@ -121,45 +119,52 @@ const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCusto
                     </button>
 
                     {/* POPUP CHỌN NGÀY */}
-                    {showDatePicker && (
-                        <div className={`
-                            bg-[#1C1E26] border border-gray-700 rounded-xl shadow-2xl p-4 w-[280px] z-50 animate-fade-in-down
-                            fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-                            md:absolute md:top-full md:right-0 md:left-auto md:translate-x-0 md:translate-y-0 md:mt-2
-                        `}>
-                            <div className="flex justify-between items-center mb-3">
-                                <span className="text-sm font-bold text-white">Tùy chọn khoảng ngày</span>
-                                <button onClick={() => setShowDatePicker(false)}><X size={16} className="text-gray-500 hover:text-white"/></button>
-                            </div>
-                            
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="block text-xs text-gray-400 mb-1">Từ ngày</label>
-                                    <input 
-                                        type="date" 
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded p-2 text-sm text-white focus:border-blue-500 outline-none [color-scheme:dark]"
-                                        value={customStart} 
-                                        onChange={(e) => {setTimeFilter('custom'); setCustomStart(e.target.value)}}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-gray-400 mb-1">Đến ngày</label>
-                                    <input 
-                                        type="date" 
-                                        className="w-full bg-[#0F1115] border border-gray-700 rounded p-2 text-sm text-white focus:border-blue-500 outline-none [color-scheme:dark]"
-                                        value={customEnd} 
-                                        onChange={(e) => {setTimeFilter('custom'); setCustomEnd(e.target.value)}}
-                                    />
-                                </div>
-                                <button 
-                                    onClick={() => setShowDatePicker(false)}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded text-sm font-medium flex items-center justify-center gap-2 mt-2"
-                                >
-                                    <Check size={14}/> Áp dụng
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    {/* POPUP CHỌN NGÀY (Đã tối ưu cho Mobile/Safari) */}
+{showDatePicker && (
+    <div className={`
+        bg-[#1C1E26] border border-gray-700 rounded-xl shadow-2xl p-4 w-[300px] z-50 animate-fade-in-down
+        fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+        md:absolute md:top-full md:right-0 md:left-auto md:translate-x-0 md:translate-y-0 md:mt-2
+    `}>
+        <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
+            <span className="text-sm font-bold text-white">Tùy chọn thời gian</span>
+            <button onClick={() => setShowDatePicker(false)} className="p-1 hover:bg-white/10 rounded-full transition"><X size={16} className="text-gray-400 hover:text-white"/></button>
+        </div>
+        
+        <div className="space-y-4">
+            <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5 ml-1">Từ ngày</label>
+                <div className="relative">
+                    <input 
+                        type="date" 
+                        className="w-full bg-[#2D3039] border border-gray-600 rounded-lg px-3 py-3 text-base text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none [color-scheme:dark]"
+                        value={customStart} 
+                        onChange={(e) => {setTimeFilter('custom'); setCustomStart(e.target.value)}}
+                    />
+                </div>
+            </div>
+            
+            <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5 ml-1">Đến ngày</label>
+                <div className="relative">
+                    <input 
+                        type="date" 
+                        className="w-full bg-[#2D3039] border border-gray-600 rounded-lg px-3 py-3 text-base text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none [color-scheme:dark]"
+                        value={customEnd} 
+                        onChange={(e) => {setTimeFilter('custom'); setCustomEnd(e.target.value)}}
+                    />
+                </div>
+            </div>
+
+            <button 
+                onClick={() => setShowDatePicker(false)}
+                className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white py-3 rounded-lg text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 mt-2 shadow-lg hover:shadow-blue-500/20 transition-all"
+            >
+                <Check size={16} strokeWidth={3} /> Áp dụng
+            </button>
+        </div>
+    </div>
+)}
                 </div>
 
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" className="hidden" />
@@ -273,16 +278,47 @@ function App() {
     return {start:null,end:null};
   };
 
+  // --- [ĐÃ SỬA] HIỂN THỊ LABEL NGÀY TỰ ĐỘNG ---
   const dateLabel = useMemo(() => {
     if (timeFilter === 'custom') return (!customStart || !customEnd) ? "Chọn khoảng ngày" : `${(new Date(customStart).getDate()+'').padStart(2,'0')}/${(new Date(customStart).getMonth()+1+'').padStart(2,'0')} - ${(new Date(customEnd).getDate()+'').padStart(2,'0')}/${(new Date(customEnd).getMonth()+1+'').padStart(2,'0')}`;
+    
     const { start, end } = getDateRange(timeFilter, 0);
-    return !start ? "" : timeFilter === 'year' ? `Năm ${start.getFullYear()}` : `${(start.getDate()+'').padStart(2,'0')}/${(start.getMonth()+1+'').padStart(2,'0')} - ${(end.getDate()+'').padStart(2,'0')}/${(end.getMonth()+1+'').padStart(2,'0')}`;
+    if (!start) return "";
+
+    // Nếu khoảng thời gian chứa ngày hôm nay -> Hiển thị kết thúc là Hôm nay
+    let displayEnd = end;
+    const today = new Date();
+    
+    if (today >= start && today <= end) {
+        displayEnd = today;
+    }
+
+    const f = (d) => `${(d.getDate()+'').padStart(2,'0')}/${(d.getMonth()+1+'').padStart(2,'0')}`;
+    if (timeFilter === 'year') return `Năm ${start.getFullYear()} (đến ${f(displayEnd)})`;
+    
+    return `${f(start)} - ${f(displayEnd)}`;
   }, [timeFilter, customStart, customEnd]);
+  // ----------------------------------------------
 
   useEffect(() => {
     const rangeCurrent = getDateRange(timeFilter, 0);
     if (timeFilter === 'custom' && (!rangeCurrent.start || !rangeCurrent.end)) return;
     let rangePrevious = timeFilter !== 'custom' ? getDateRange(timeFilter, 1) : null;
+
+    // --- [ĐÃ SỬA] LOGIC SO SÁNH CÙNG KỲ ---
+    if (rangePrevious && timeFilter !== 'custom') {
+        const today = new Date();
+        if (today >= rangeCurrent.start && today <= rangeCurrent.end) {
+            const timePassed = today.getTime() - rangeCurrent.start.getTime();
+            const newPrevEnd = new Date(rangePrevious.start.getTime() + timePassed);
+            if (newPrevEnd < rangePrevious.end) {
+                rangePrevious.end = newPrevEnd;
+                rangePrevious.end.setHours(23, 59, 59, 999);
+            }
+        }
+    }
+    // -------------------------------------
+
     setViewData({
         vanglai: calculatePhacoStats(rawExcelData.filter(d => d.type === 'vanglai'), rangeCurrent, rangePrevious),
         tuyen: calculatePhacoStats(rawExcelData.filter(d => d.type === 'tuyen'), rangeCurrent, rangePrevious),

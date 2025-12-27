@@ -49,8 +49,8 @@ const ServiceReport = ({ data, formatCurrency }) => {
                 <thead className="text-gray-400 uppercase bg-[#0F1115]">
                     <tr>
                         <th className="px-4 md:px-6 py-3 md:py-4">Tên gói dịch vụ</th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 text-center">SL Bán</th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 text-right">Đơn giá TB</th>
+                        <th className="px-4 md:px-6 py-3 md:py-4 text-center">SL</th>
+                        <th className="px-4 md:px-6 py-3 md:py-4 text-right">Đơn giá</th>
                         <th className="px-4 md:px-6 py-3 md:py-4 text-right">Thành tiền</th>
                         <th className="px-4 md:px-6 py-3 md:py-4 text-right">Tỷ trọng</th>
                     </tr>

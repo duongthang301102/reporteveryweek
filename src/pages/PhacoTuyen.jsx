@@ -1,10 +1,8 @@
 import React from 'react';
 import ProductCard from '../components/ProductCard';
-// 1. IMPORT ICON MỚI
 import { Package, Users, TrendingUp, TrendingDown } from 'lucide-react';
 
 const PhacoTuyen = ({ data, formatCurrency }) => {
-  // 2. CẬP NHẬT GROWTH BADGE DÙNG ICON
   const GrowthBadge = ({ value }) => {
     if (value === null || value === undefined) return null;
     const isPositive = value >= 0;
@@ -39,14 +37,19 @@ const PhacoTuyen = ({ data, formatCurrency }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          {/* GÓI CƠ BẢN */}
           <ProductCard 
               title="Gói Cơ bản" subtitle="Dòng phổ thông" icon={Package} badge="TIÊU CHUẨN" color="blue"
+              count={summaryData.basic.sales}  // <--- ĐÃ THÊM SỐ LƯỢNG
               label1="Doanh thu Bảo hiểm" val1={summaryData.basic.insRev} growth1={summaryData.basic.insGrowth}
               label2="Doanh thu Bệnh nhân" val2={summaryData.basic.patRev} growth2={summaryData.basic.patGrowth}
               details={summaryData.basic.details} formatCurrency={formatCurrency}
           />
+
+          {/* GÓI CAO CẤP */}
           <ProductCard 
               title="Gói Cao cấp" subtitle="Dòng chuyên sâu" icon={Users} badge="CAO CẤP" color="purple"
+              count={summaryData.premium.sales}  // <--- ĐÃ THÊM SỐ LƯỢNG
               label1="Doanh thu Bảo hiểm" val1={summaryData.premium.insRev} growth1={summaryData.premium.insGrowth}
               label2="Doanh thu Bệnh nhân" val2={summaryData.premium.patRev} growth2={summaryData.premium.patGrowth}
               details={summaryData.premium.details} formatCurrency={formatCurrency}
