@@ -5,7 +5,9 @@ import {
   collection, 
   getDocs, 
   writeBatch, 
-  doc 
+  doc,
+  query, // [MỚI] Để tạo câu lệnh lọc
+  where  // [MỚI] Để tìm theo điều kiện
 } from "firebase/firestore";
 
 // Cấu hình từ dự án của bạn
@@ -28,12 +30,9 @@ const COLLECTION_NAME = "transactions"; // Tên bảng dữ liệu trên mây
 export const getAllTransactions = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
-    // Chuyển đổi dữ liệu từ Firestore về dạng Array chuẩn cho App
     const data = querySnapshot.docs.map(doc => {
       const item = doc.data();
-      
-      // Xử lý chuyển đổi Timestamp của Firestore về Date string nếu cần
-      // (Để đảm bảo App đọc được ngày tháng như cũ)
+      // Chuyển đổi Timestamp về Date
       if (item.createdAt && item.createdAt.toDate) {
          item.createdAt = item.createdAt.toDate();
       }
@@ -47,11 +46,9 @@ export const getAllTransactions = async () => {
   }
 };
 
-// --- 2. LƯU DỮ LIỆU (BATCH WRITE - Tối ưu tốc độ) ---
+// --- 2. LƯU DỮ LIỆU (BATCH WRITE) ---
 export const saveTransactions = async (newData) => {
   try {
-    // Firestore chỉ cho phép ghi tối đa 500 dòng/lần (batch)
-    // Nên ta phải chia nhỏ dữ liệu ra nếu file Excel quá lớn
     const BATCH_SIZE = 450; 
     const chunks = [];
     
@@ -59,16 +56,14 @@ export const saveTransactions = async (newData) => {
         chunks.push(newData.slice(i, i + BATCH_SIZE));
     }
 
-    // Duyệt qua từng gói và đẩy lên
     for (const chunk of chunks) {
         const batch = writeBatch(db);
         chunk.forEach((item) => {
-            // Tạo ID ngẫu nhiên cho từng dòng
             const docRef = doc(collection(db, COLLECTION_NAME)); 
-            // Thêm timestamp để biết ngày tạo (tùy chọn)
+            // Lưu thêm timestamp để sort nếu cần
             batch.set(docRef, { ...item, _uploadedAt: new Date() });
         });
-        await batch.commit(); // Gửi gói lên mây
+        await batch.commit(); 
     }
     
     console.log("Đã lưu xong toàn bộ dữ liệu lên Cloud.");
@@ -78,12 +73,10 @@ export const saveTransactions = async (newData) => {
   }
 };
 
-// --- 3. XÓA TOÀN BỘ DỮ LIỆU ---
+// --- 3. XÓA TOÀN BỘ DỮ LIỆU (CẨN THẬN) ---
 export const clearTransactions = async () => {
   try {
-    // Firestore không có lệnh "Xóa tất cả", ta phải lấy hết về rồi xóa từng gói
     const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
-    
     const BATCH_SIZE = 450;
     const docs = querySnapshot.docs;
     const chunks = [];
@@ -103,5 +96,42 @@ export const clearTransactions = async () => {
   } catch (error) {
     console.error("Lỗi khi xóa:", error);
     alert("Có lỗi khi xóa dữ liệu!");
+  }
+};
+
+// --- 4. [MỚI] XÓA DỮ LIỆU THEO LOẠI (Menu cụ thể) ---
+export const clearTransactionsByType = async (type) => {
+  try {
+    // 1. Tạo Query: Chỉ lấy những dòng có cột 'type' trùng với loại muốn xóa
+    const q = query(collection(db, COLLECTION_NAME), where("type", "==", type));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+        console.log(`Không có dữ liệu loại '${type}' để xóa.`);
+        return;
+    }
+
+    // 2. Chia lô để xóa (Batch delete)
+    const BATCH_SIZE = 450;
+    const docs = querySnapshot.docs;
+    const chunks = [];
+
+    for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+        chunks.push(docs.slice(i, i + BATCH_SIZE));
+    }
+
+    // 3. Thực thi xóa
+    for (const chunk of chunks) {
+        const batch = writeBatch(db);
+        chunk.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+    }
+    console.log(`Đã xóa sạch dữ liệu loại: ${type}`);
+  } catch (error) {
+    console.error(`Lỗi khi xóa loại ${type}:`, error);
+    alert(`Có lỗi khi xóa dữ liệu mục ${type}!`);
+    throw error;
   }
 };

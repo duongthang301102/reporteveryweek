@@ -20,10 +20,7 @@ const ServiceReport = ({ data, formatCurrency }) => {
       <div className="bg-[#1C1E26] rounded-2xl p-5 md:p-8 relative overflow-hidden border border-gray-800 shadow-lg">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none"></div>
         <div className="flex items-center gap-3 mb-1 md:mb-2">
-            <div className="p-1.5 md:p-2 bg-emerald-500/10 rounded-lg">
-                <ClipboardList className="text-emerald-400" size={18} />
-            </div>
-            <p className="text-gray-400 text-[10px] md:text-sm font-medium uppercase tracking-wider">Tổng Doanh Thu Dịch Vụ ({data.label})</p>
+            <p className="text-gray-400 text-[10px] md:text-sm font-medium uppercase tracking-wider">Tổng Doanh Thu Combo ({data.label})</p>
         </div>
         
         <div className="mt-1 md:mt-2">
@@ -41,7 +38,7 @@ const ServiceReport = ({ data, formatCurrency }) => {
 
       <div className="bg-[#1C1E26] rounded-2xl border border-gray-800 overflow-hidden shadow-lg">
         <div className="p-4 md:p-6 border-b border-gray-800">
-            <h3 className="text-base md:text-lg font-bold text-white">Chi tiết từng gói dịch vụ</h3>
+            <h3 className="text-base md:text-lg font-bold text-white">Chi tiết từng Combo</h3>
         </div>
         
         <div className="overflow-x-auto">

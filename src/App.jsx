@@ -2,8 +2,10 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Calendar, Upload, ArrowRight, Menu, X, Check, AlertCircle } from 'lucide-react';
-import { saveTransactions, getAllTransactions, clearTransactions } from './db';
+import { saveTransactions, getAllTransactions, clearTransactions, clearTransactionsByType } from './db';
 import { SpeedInsights } from "@vercel/speed-insights/react";
+
+import { sendEmailReport } from './utils/emailService';
 
 import Sidebar from './components/Sidebar';
 import PhacoVangLai from './pages/PhacoVangLai';
@@ -11,6 +13,10 @@ import PhacoTuyen from './pages/PhacoTuyen';
 import ServiceReport from './pages/ServiceReport';
 import DataManagement from './pages/DataManagement';
 import ConfirmModal from './components/ConfirmModal';
+import TestImport from './pages/TestImport';
+
+// --- [MỚI] IMPORT SUCCESS MODAL ---
+import SuccessModal from './components/SuccessModal';
 
 // --- HELPERS ---
 const safeParseNumber = (value) => {
@@ -45,7 +51,7 @@ const FilterButton = ({ label, active, onClick }) => (
 );
 
 // --- MAIN LAYOUT ---
-const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCustomStart, customEnd, setCustomEnd, dateLabel, onUpload, category, activeMenuTitle, onClearData }) => {
+const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCustomStart, customEnd, setCustomEnd, dateLabel, onUpload, category, activeMenuTitle, onClearData, onSendEmail }) => {
   const fileInputRef = useRef(null);
   const handleFileChange = (e) => { const file = e.target.files[0]; if (file) onUpload(file, category); };
   
@@ -56,6 +62,7 @@ const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCusto
     <div className="flex h-screen bg-[#0F1115] text-white overflow-hidden font-sans">
       <Sidebar 
         onClearData={onClearData} 
+        onSendEmail={onSendEmail} 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
       /> 
@@ -119,58 +126,61 @@ const MainLayout = ({ children, timeFilter, setTimeFilter, customStart, setCusto
                     </button>
 
                     {/* POPUP CHỌN NGÀY */}
-                    {/* POPUP CHỌN NGÀY (Đã tối ưu cho Mobile/Safari) */}
-{showDatePicker && (
-    <div className={`
-        bg-[#1C1E26] border border-gray-700 rounded-xl shadow-2xl p-4 w-[300px] z-50 animate-fade-in-down
-        fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-        md:absolute md:top-full md:right-0 md:left-auto md:translate-x-0 md:translate-y-0 md:mt-2
-    `}>
-        <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
-            <span className="text-sm font-bold text-white">Tùy chọn thời gian</span>
-            <button onClick={() => setShowDatePicker(false)} className="p-1 hover:bg-white/10 rounded-full transition"><X size={16} className="text-gray-400 hover:text-white"/></button>
-        </div>
-        
-        <div className="space-y-4">
-            <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5 ml-1">Từ ngày</label>
-                <div className="relative">
-                    <input 
-                        type="date" 
-                        className="w-full bg-[#2D3039] border border-gray-600 rounded-lg px-3 py-3 text-base text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none [color-scheme:dark]"
-                        value={customStart} 
-                        onChange={(e) => {setTimeFilter('custom'); setCustomStart(e.target.value)}}
-                    />
-                </div>
-            </div>
-            
-            <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5 ml-1">Đến ngày</label>
-                <div className="relative">
-                    <input 
-                        type="date" 
-                        className="w-full bg-[#2D3039] border border-gray-600 rounded-lg px-3 py-3 text-base text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none [color-scheme:dark]"
-                        value={customEnd} 
-                        onChange={(e) => {setTimeFilter('custom'); setCustomEnd(e.target.value)}}
-                    />
-                </div>
-            </div>
+                    {showDatePicker && (
+                        <div className={`
+                            bg-[#1C1E26] border border-gray-700 rounded-xl shadow-2xl p-4 w-[300px] z-50 animate-fade-in-down
+                            fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+                            md:absolute md:top-full md:right-0 md:left-auto md:translate-x-0 md:translate-y-0 md:mt-2
+                        `}>
+                            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
+                                <span className="text-sm font-bold text-white">Tùy chọn thời gian</span>
+                                <button onClick={() => setShowDatePicker(false)} className="p-1 hover:bg-white/10 rounded-full transition"><X size={16} className="text-gray-400 hover:text-white"/></button>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-400 mb-1.5 ml-1">Từ ngày</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="date" 
+                                            className="w-full bg-[#2D3039] border border-gray-600 rounded-lg px-3 py-3 text-base text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none [color-scheme:dark]"
+                                            value={customStart} 
+                                            onChange={(e) => {setTimeFilter('custom'); setCustomStart(e.target.value)}}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-400 mb-1.5 ml-1">Đến ngày</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="date" 
+                                            className="w-full bg-[#2D3039] border border-gray-600 rounded-lg px-3 py-3 text-base text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none [color-scheme:dark]"
+                                            value={customEnd} 
+                                            onChange={(e) => {setTimeFilter('custom'); setCustomEnd(e.target.value)}}
+                                        />
+                                    </div>
+                                </div>
 
-            <button 
-                onClick={() => setShowDatePicker(false)}
-                className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white py-3 rounded-lg text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 mt-2 shadow-lg hover:shadow-blue-500/20 transition-all"
-            >
-                <Check size={16} strokeWidth={3} /> Áp dụng
-            </button>
-        </div>
-    </div>
-)}
+                                <button 
+                                    onClick={() => setShowDatePicker(false)}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white py-3 rounded-lg text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 mt-2 shadow-lg hover:shadow-blue-500/20 transition-all"
+                                >
+                                    <Check size={16} strokeWidth={3} /> Áp dụng
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" className="hidden" />
-                <button onClick={() => fileInputRef.current.click()} className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg flex items-center justify-center gap-2 text-[11px] md:text-sm font-medium transition duration-200 flex-grow md:flex-grow-0 whitespace-nowrap">
-                    <Upload size={14} /> <span className="hidden sm:inline">Nhập Excel</span> <span className="sm:hidden">Nhập</span>
-                </button>
+                {onUpload && (
+                    <>
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" className="hidden" />
+                        <button onClick={() => fileInputRef.current.click()} className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg flex items-center justify-center gap-2 text-[11px] md:text-sm font-medium transition duration-200 flex-grow md:flex-grow-0 whitespace-nowrap">
+                            <Upload size={14} /> <span className="hidden sm:inline">Nhập Excel</span> <span className="sm:hidden">Nhập</span>
+                        </button>
+                    </>
+                )}
             </div>
           </div>
         </header>
@@ -192,6 +202,10 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewData, setViewData] = useState({ vanglai: null, tuyen: null, dichvu: null });
 
+  // --- [MỚI] STATE CHO MODAL THÀNH CÔNG ---
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
   useEffect(() => {
     const loadData = async () => { try { const data = await getAllTransactions(); if(data) setRawExcelData(data); } finally { setIsLoading(false); } };
     loadData();
@@ -199,7 +213,70 @@ function App() {
 
   const handleOpenClearModal = () => { setIsModalOpen(true); };
 
-  const executeClearData = async () => { await clearTransactions(); setIsModalOpen(false); window.location.reload(); };
+  // Hàm xử lý xóa dữ liệu (Nhận loại dữ liệu từ Modal)
+  const executeClearData = async (type) => { 
+    if (!type) return;
+
+    if (type === 'all') {
+        if (window.confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu của tất cả các mục không? Hành động này không thể hoàn tác.")) {
+            await clearTransactions(); 
+            alert("Đã xóa sạch toàn bộ dữ liệu!");
+        } else {
+            return; // Hủy xóa
+        }
+    } else {
+        await clearTransactionsByType(type);
+        const names = {
+            'vanglai': 'Phaco Vãng Lai',
+            'tuyen': 'Phaco Tuyến',
+            'dichvu': 'Combo Dịch vụ',
+            'test': 'Dữ liệu Test'
+        };
+        alert(`Đã xóa dữ liệu của mục: ${names[type] || type}`);
+    }
+    
+    setIsModalOpen(false); 
+    window.location.reload(); 
+  };
+
+  // --- [ĐÃ SỬA] HÀM GỬI EMAIL: HIỆN MODAL THAY VÌ ALERT ---
+  const handleSendEmailReport = async () => {
+    if (!rawExcelData || rawExcelData.length === 0) {
+        alert("Chưa có dữ liệu gốc để gửi báo cáo!");
+        return;
+    }
+
+    const weekRange = getDateRange('week', 0); 
+    if (!weekRange.start || !weekRange.end) {
+        alert("Không xác định được thời gian tuần này.");
+        return;
+    }
+
+    const snapshotVangLai = calculatePhacoStats(rawExcelData.filter(d => d.type === 'vanglai'), weekRange, null);
+    const snapshotTuyen = calculatePhacoStats(rawExcelData.filter(d => d.type === 'tuyen'), weekRange, null);
+    const snapshotDichVu = calculateServices(rawExcelData.filter(d => d.type === 'dichvu'), weekRange, null);
+
+    const fDate = (d) => `${(d.getDate()+'').padStart(2,'0')}/${(d.getMonth()+1+'').padStart(2,'0')}`;
+    const dateRangeLabel = `${fDate(weekRange.start)} - ${fDate(weekRange.end)} (Năm ${weekRange.start.getFullYear()})`;
+
+    const emailData = {
+        dateRange: dateRangeLabel,
+        totalAll: (snapshotVangLai.totalRevenue || 0) + (snapshotTuyen.totalRevenue || 0) + (snapshotDichVu.totalRevenue || 0),
+        vanglai: snapshotVangLai,
+        tuyen: snapshotTuyen,
+        dichvu: snapshotDichVu
+    };
+
+    const result = await sendEmailReport(emailData);
+    
+    if (result.success) {
+        // [MỚI] Mở Modal Thành Công
+        setSuccessMessage(`Đã gửi báo cáo TUẦN (${dateRangeLabel}) thành công!`);
+        setIsSuccessModalOpen(true);
+    } else {
+        alert("❌ Gửi thất bại. Vui lòng kiểm tra lại cấu hình EmailJS.");
+    }
+  };
 
   const handleUpload = (file, category) => {
     const reader = new FileReader();
@@ -246,10 +323,28 @@ function App() {
     });
     const calcGrowth = (curr, pre) => timeFilter === 'custom' ? null : pre === 0 ? (curr > 0 ? 100 : 0) : ((curr - pre) / pre) * 100;
     const formatDetails = (obj) => Object.keys(obj).map(k => ({ name: k, qty: obj[k] }));
+    
     return {
-        totalRevenue: current.totalRevenue, compareRevenue: timeFilter === 'custom' ? null : prev.totalRevenue, percent: calcGrowth(current.totalRevenue, prev.totalRevenue), chart: Array.from({length: 10}, () => Math.floor(Math.random() * 100)),
-        basic: { insRev: current.basic.insRev, patRev: current.basic.patRev, insGrowth: calcGrowth(current.basic.insRev, prev.basic.insRev), patGrowth: calcGrowth(current.basic.patRev, prev.basic.patRev), details: formatDetails(current.basic.details) },
-        premium: { insRev: current.premium.insRev, patRev: current.premium.patRev, insGrowth: calcGrowth(current.premium.insRev, prev.premium.insRev), patGrowth: calcGrowth(current.premium.patRev, prev.premium.patRev), details: formatDetails(current.premium.details) }
+        totalRevenue: current.totalRevenue, 
+        compareRevenue: timeFilter === 'custom' ? null : prev.totalRevenue, 
+        percent: calcGrowth(current.totalRevenue, prev.totalRevenue), 
+        chart: Array.from({length: 10}, () => Math.floor(Math.random() * 100)),
+        basic: { 
+            sales: current.basic.sales, 
+            insRev: current.basic.insRev, 
+            patRev: current.basic.patRev, 
+            insGrowth: calcGrowth(current.basic.insRev, prev.basic.insRev), 
+            patGrowth: calcGrowth(current.basic.patRev, prev.basic.patRev), 
+            details: formatDetails(current.basic.details) 
+        },
+        premium: { 
+            sales: current.premium.sales,
+            insRev: current.premium.insRev, 
+            patRev: current.premium.patRev, 
+            insGrowth: calcGrowth(current.premium.insRev, prev.premium.insRev), 
+            patGrowth: calcGrowth(current.premium.patRev, prev.premium.patRev), 
+            details: formatDetails(current.premium.details) 
+        }
     };
   };
 
@@ -278,34 +373,22 @@ function App() {
     return {start:null,end:null};
   };
 
-  // --- [ĐÃ SỬA] HIỂN THỊ LABEL NGÀY TỰ ĐỘNG ---
   const dateLabel = useMemo(() => {
     if (timeFilter === 'custom') return (!customStart || !customEnd) ? "Chọn khoảng ngày" : `${(new Date(customStart).getDate()+'').padStart(2,'0')}/${(new Date(customStart).getMonth()+1+'').padStart(2,'0')} - ${(new Date(customEnd).getDate()+'').padStart(2,'0')}/${(new Date(customEnd).getMonth()+1+'').padStart(2,'0')}`;
-    
     const { start, end } = getDateRange(timeFilter, 0);
     if (!start) return "";
-
-    // Nếu khoảng thời gian chứa ngày hôm nay -> Hiển thị kết thúc là Hôm nay
     let displayEnd = end;
     const today = new Date();
-    
-    if (today >= start && today <= end) {
-        displayEnd = today;
-    }
-
+    if (today >= start && today <= end) { displayEnd = today; }
     const f = (d) => `${(d.getDate()+'').padStart(2,'0')}/${(d.getMonth()+1+'').padStart(2,'0')}`;
     if (timeFilter === 'year') return `Năm ${start.getFullYear()} (đến ${f(displayEnd)})`;
-    
     return `${f(start)} - ${f(displayEnd)}`;
   }, [timeFilter, customStart, customEnd]);
-  // ----------------------------------------------
 
   useEffect(() => {
     const rangeCurrent = getDateRange(timeFilter, 0);
     if (timeFilter === 'custom' && (!rangeCurrent.start || !rangeCurrent.end)) return;
     let rangePrevious = timeFilter !== 'custom' ? getDateRange(timeFilter, 1) : null;
-
-    // --- [ĐÃ SỬA] LOGIC SO SÁNH CÙNG KỲ ---
     if (rangePrevious && timeFilter !== 'custom') {
         const today = new Date();
         if (today >= rangeCurrent.start && today <= rangeCurrent.end) {
@@ -317,8 +400,6 @@ function App() {
             }
         }
     }
-    // -------------------------------------
-
     setViewData({
         vanglai: calculatePhacoStats(rawExcelData.filter(d => d.type === 'vanglai'), rangeCurrent, rangePrevious),
         tuyen: calculatePhacoStats(rawExcelData.filter(d => d.type === 'tuyen'), rangeCurrent, rangePrevious),
@@ -334,12 +415,33 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={ <MainLayout onClearData={handleOpenClearModal} activeMenuTitle="Phaco Vãng Lai" category="vanglai" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <PhacoVangLai data={{ summary: { label: dateLabel, ...getSafeData(viewData.vanglai) }, packages: getSafeData(viewData.vanglai) }} formatCurrency={formatCurrency} /> </MainLayout> } />
-        <Route path="/phaco-tuyen" element={ <MainLayout onClearData={handleOpenClearModal} activeMenuTitle="Phaco Tuyến" category="tuyen" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <PhacoTuyen data={{ summary: { label: dateLabel, ...getSafeData(viewData.tuyen) }, phacoTuyen: getSafeData(viewData.tuyen) }} formatCurrency={formatCurrency} /> </MainLayout> } />
-        <Route path="/services" element={ <MainLayout onClearData={handleOpenClearModal} activeMenuTitle="Gói Dịch vụ" category="dichvu" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <ServiceReport data={{ label: dateLabel, ...(viewData.dichvu || { totalRevenue: 0, compareRevenue: 0, percent: 0, items: [] }) }} formatCurrency={formatCurrency} /> </MainLayout> } />
-        <Route path="/data" element={ <MainLayout onClearData={handleOpenClearModal} activeMenuTitle="Dữ liệu chi tiết" category="vanglai" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <DataManagement data={rawExcelData} formatCurrency={formatCurrency} /> </MainLayout> } />
+        <Route path="/" element={ <MainLayout onClearData={handleOpenClearModal} onSendEmail={handleSendEmailReport} activeMenuTitle="Phaco Vãng Lai" category="vanglai" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <PhacoVangLai data={{ summary: { label: dateLabel, ...getSafeData(viewData.vanglai) }, packages: getSafeData(viewData.vanglai) }} formatCurrency={formatCurrency} /> </MainLayout> } />
+        <Route path="/phaco-tuyen" element={ <MainLayout onClearData={handleOpenClearModal} onSendEmail={handleSendEmailReport} activeMenuTitle="Phaco Tuyến" category="tuyen" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <PhacoTuyen data={{ summary: { label: dateLabel, ...getSafeData(viewData.tuyen) }, phacoTuyen: getSafeData(viewData.tuyen) }} formatCurrency={formatCurrency} /> </MainLayout> } />
+        <Route path="/services" element={ <MainLayout onClearData={handleOpenClearModal} onSendEmail={handleSendEmailReport} activeMenuTitle="Combo" category="dichvu" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <ServiceReport data={{ label: dateLabel, ...(viewData.dichvu || { totalRevenue: 0, compareRevenue: 0, percent: 0, items: [] }) }} formatCurrency={formatCurrency} /> </MainLayout> } />
+        <Route path="/data" element={ <MainLayout onClearData={handleOpenClearModal} onSendEmail={handleSendEmailReport} activeMenuTitle="Dữ liệu chi tiết" category="vanglai" onUpload={handleUpload} timeFilter={timeFilter} setTimeFilter={setTimeFilter} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} dateLabel={dateLabel}> <DataManagement data={rawExcelData} formatCurrency={formatCurrency} /> </MainLayout> } />
+        
+        <Route path="/test-import" element={ 
+            <MainLayout 
+                onClearData={handleOpenClearModal} 
+                onSendEmail={handleSendEmailReport} 
+                activeMenuTitle="Test Nhập Liệu" 
+                category="test" 
+                onUpload={() => {}} 
+                timeFilter={timeFilter} setTimeFilter={setTimeFilter} 
+                customStart={customStart} setCustomStart={setCustomStart} 
+                customEnd={customEnd} setCustomEnd={setCustomEnd} 
+                dateLabel={dateLabel}
+            > 
+                <TestImport formatCurrency={formatCurrency} /> 
+            </MainLayout> 
+        } />
+
       </Routes>
       <ConfirmModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onConfirm={executeClearData} />
+      
+      {/* [MỚI] Render Modal Thành công */}
+      <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} message={successMessage} />
+      
       <SpeedInsights />
     </Router>
   );

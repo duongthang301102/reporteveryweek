@@ -84,7 +84,7 @@ const ProductCard = ({
                     
                     <div className={`flex flex-col items-center justify-center flex-shrink-0 min-w-[70px] md:min-w-[80px] px-2 py-1.5 md:py-2 rounded-xl border ${borderClass} ${countBg}`}>
                         <span className="text-[9px] text-gray-300 uppercase font-bold tracking-wider leading-none mb-0.5 opacity-80">
-                            SL Bán
+                            Số lượng
                         </span>
                         <span className={`text-2xl md:text-3xl font-black leading-none tracking-tight ${textClass}`}>
                             {finalCount}
