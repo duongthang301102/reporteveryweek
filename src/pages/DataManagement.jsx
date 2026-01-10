@@ -1,82 +1,109 @@
-import React from 'react';
-import { Database } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Database } from 'lucide-react';
 
 const DataManagement = ({ data, formatCurrency }) => {
-  const formatDate = (dateVal) => {
-    if (!dateVal) return "-";
-    let d;
-    if (typeof dateVal === 'string' && dateVal.includes('/')) {
-        const parts = dateVal.split('/');
-        if (parts.length === 3) d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-    }
-    if (!d || isNaN(d.getTime())) d = new Date(dateVal);
-    if (isNaN(d.getTime())) return String(dateVal);
-    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Lọc dữ liệu theo từ khóa tìm kiếm
+  const filteredData = data.filter(row => 
+    Object.values(row).some(val => 
+      String(val).toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
+  // Hàm format ngày tháng an toàn
+  const formatDate = (val) => {
+    if (!val) return '-';
+    try {
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return String(val);
+        return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth()+1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+    } catch (e) { return String(val); }
   };
 
   return (
-    <div className="bg-[#1C1E26] rounded-2xl border border-gray-800 overflow-hidden shadow-lg animate-fade-in-up">
-      <div className="p-4 md:p-6 border-b border-gray-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+    <div className="animate-fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-            <Database className="text-blue-500" size={20} /> 
-            Kho dữ liệu tổng hợp
-          </h3>
-          <p className="text-xs md:text-sm text-gray-500 mt-1">
-            Tổng cộng: <span className="text-white font-bold">{data.length}</span> dòng giao dịch
-          </p>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Database className="text-yellow-400"/> Dữ liệu Chi tiết
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
+                Tổng cộng: <span className="text-white font-bold">{data.length}</span> dòng dữ liệu trong hệ thống.
+            </p>
+        </div>
+        
+        {/* Ô Tìm kiếm */}
+        <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+            <input 
+                type="text" 
+                placeholder="Tìm kiếm..." 
+                className="w-full bg-[#1C1E26] border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-yellow-500 focus:outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
         </div>
       </div>
 
-      {/* Bảng dữ liệu: Scroll Horizontal + Max Height */}
-      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-        <table className="w-full text-[11px] md:text-sm text-left whitespace-nowrap">
-          <thead className="text-gray-400 uppercase bg-[#0F1115] sticky top-0 z-10">
-            <tr>
-              <th className="px-4 md:px-6 py-3">Ngày</th>
-              <th className="px-4 md:px-6 py-3">Nguồn</th>
-              <th className="px-4 md:px-6 py-3">Tên gói</th>
-              <th className="px-4 md:px-6 py-3 text-center">Loại</th>
-              <th className="px-4 md:px-6 py-3 text-right">SL</th>
-              <th className="px-4 md:px-6 py-3 text-right">Đơn giá</th>
-              <th className="px-4 md:px-6 py-3 text-right">Bảo hiểm</th>
-              <th className="px-4 md:px-6 py-3 text-right">Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
-            {data.length === 0 ? (
-              <tr><td colSpan="8" className="px-6 py-8 text-center text-gray-500 italic">Chưa có dữ liệu nào. Hãy nhập file Excel!</td></tr>
-            ) : (
-              data.map((row, index) => {
-                const ngay = row['ngày'] || row['Ngày'];
-                const tenGoi = row['tên gói'] || row['Tên gói'];
-                const loaiGoi = row['loại gói'] || row['Loại gói'];
-                const sl = Number(String(row['số lượng'] || row['Số lượng'] || 0).replace(/[^0-9.-]+/g,""));
-                const gia = Number(String(row['đơn giá'] || row['Đơn giá'] || 0).replace(/[^0-9.-]+/g,""));
-                const bh = Number(String(row['giá bảo hiểm'] || row['Giá bảo hiểm'] || 0).replace(/[^0-9.-]+/g,""));
-                const thanhTien = gia * sl; 
+      {/* Bảng Dữ liệu */}
+      <div className="bg-[#1C1E26] border border-gray-800 rounded-xl overflow-hidden shadow-lg">
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+                <thead className="bg-[#0F1115] text-gray-400 uppercase text-xs">
+                    <tr>
+                        <th className="px-4 py-3 border-b border-gray-700">Ngày</th>
+                        <th className="px-4 py-3 border-b border-gray-700">Tên Gói</th>
+                        <th className="px-4 py-3 border-b border-gray-700 text-center">SL</th>
+                        <th className="px-4 py-3 border-b border-gray-700 text-right">Đơn Giá</th>
+                        <th className="px-4 py-3 border-b border-gray-700 text-right">Thành Tiền</th>
+                        <th className="px-4 py-3 border-b border-gray-700 text-center">Loại (Menu)</th>
+                        <th className="px-4 py-3 border-b border-gray-700 text-center">Phân Hạng</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                    {filteredData.length > 0 ? (
+                        filteredData.map((row, index) => (
+                            <tr key={index} className="hover:bg-white/5 transition">
+                                <td className="px-4 py-3 text-gray-300">{formatDate(row['ngày'])}</td>
+                                <td className="px-4 py-3 font-medium text-white">{row['tên gói']}</td>
+                                <td className="px-4 py-3 text-center text-gray-300">{row['số lượng'] || 1}</td>
+                                <td className="px-4 py-3 text-right text-gray-300">{formatCurrency(row['đơn giá'])}</td>
+                                <td className="px-4 py-3 text-right text-yellow-400 font-bold">
+                                    {formatCurrency((row['đơn giá'] || 0) * (row['số lượng'] || 1))}
+                                </td>
+                                
+                                {/* Cột hiển thị loại menu (Quan trọng để debug) */}
+                                <td className="px-4 py-3 text-center">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold 
+                                        ${row.type === 'vanglai' ? 'bg-blue-500/20 text-blue-400' : 
+                                          row.type === 'tuyen' ? 'bg-green-500/20 text-green-400' :
+                                          row.type === 'mong_vanglai' ? 'bg-teal-500/20 text-teal-400' :
+                                          row.type === 'mong_tuyen' ? 'bg-orange-500/20 text-orange-400' :
+                                          'bg-gray-700 text-gray-400'}`}>
+                                        {row.type === 'vanglai' ? 'Phaco VL' : 
+                                         row.type === 'tuyen' ? 'Phaco Tuyến' :
+                                         row.type === 'mong_vanglai' ? 'Mộng VL' :
+                                         row.type === 'mong_tuyen' ? 'Mộng Tuyến' :
+                                         row.type === 'dichvu' ? 'Combo' : row.type}
+                                    </span>
+                                </td>
 
-                let badgeClass = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-                let sourceLabel = 'Vãng Lai';
-                if (row.type === 'tuyen') { badgeClass = 'bg-teal-500/10 text-teal-400 border-teal-500/20'; sourceLabel = 'Phaco Tuyến'; }
-                else if (row.type === 'dichvu') { badgeClass = 'bg-purple-500/10 text-purple-400 border-purple-500/20'; sourceLabel = 'Dịch vụ'; }
-
-                return (
-                  <tr key={index} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-gray-300">{formatDate(ngay)}</td>
-                    <td className="px-4 md:px-6 py-3 md:py-4"><span className={`px-1.5 py-0.5 md:px-2 md:py-1 rounded text-[9px] md:text-[10px] font-bold uppercase border ${badgeClass}`}>{sourceLabel}</span></td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-white font-medium max-w-[150px] md:max-w-none truncate">{tenGoi}</td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-center text-gray-400 capitalize">{loaiGoi || '-'}</td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-mono text-white">{sl}</td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-mono text-gray-400">{formatCurrency(gia)}</td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-mono text-emerald-400">{bh > 0 ? formatCurrency(bh) : '-'}</td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-mono font-bold text-blue-400">{formatCurrency(thanhTien)}</td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                                <td className="px-4 py-3 text-center text-gray-400 text-xs">
+                                    {row['loại gói'] || '-'}
+                                </td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan="7" className="px-4 py-8 text-center text-gray-500 italic">
+                                Chưa có dữ liệu nào. Hãy thử nhập Excel.
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
       </div>
     </div>
   );

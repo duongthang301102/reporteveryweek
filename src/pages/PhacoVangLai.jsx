@@ -1,58 +1,72 @@
 import React from 'react';
 import ProductCard from '../components/ProductCard';
-// 1. IMPORT ICON MỚI
-import { Package, Users, TrendingUp, TrendingDown } from 'lucide-react';
+import { Package, Users, TrendingUp, TrendingDown, EqualApproximately, Orbit } from 'lucide-react';
 
 const PhacoVangLai = ({ data, formatCurrency }) => {
-  // 2. CẬP NHẬT GROWTH BADGE DÙNG ICON
   const GrowthBadge = ({ value }) => {
     if (value === null || value === undefined) return null;
     const isPositive = value >= 0;
     return (
         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-            {isPositive ? <TrendingUp size={12} strokeWidth={2.5} /> : <TrendingDown size={12} strokeWidth={2.5} />}
+            {isPositive ? <TrendingUp size={12} strokeWidth={2.5} /> : <TrendingDown size={12} strokeWidth={2.5} />} 
             {Math.abs(Number(value).toFixed(1))}%
         </span>
     );
   };
 
-  const summaryData = data.packages; 
+  // [LOGIC] Lấy dữ liệu từ prop packages (khớp với App.jsx)
+  const summaryData = data?.packages; 
+  
+  if (!summaryData || summaryData.totalRevenue === undefined) {
+      return <div className="text-gray-500 p-8 text-center italic">Đang tải dữ liệu...</div>;
+  }
 
   return (
-    <>
-      <div className="bg-[#1C1E26] rounded-2xl p-5 md:p-8 mb-4 md:mb-8 relative overflow-hidden border border-gray-800 shadow-lg">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-3xl rounded-full pointer-events-none"></div>
-        <p className="text-gray-400 text-[10px] md:text-sm font-medium uppercase tracking-wider mb-1 md:mb-2">Tổng Doanh Thu ({data.summary.label})</p>
-        
-        <div className="mt-1 md:mt-2">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{formatCurrency(summaryData.totalRevenue)}</h3>
-        </div>
+    <div className="animate-fade-in">
+      <div className="bg-gradient-to-r from-blue-900 to-[#1C1E26] p-6 rounded-2xl border border-blue-800/50 mb-8 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-10"><EqualApproximately size={120} /></div>
+        <div className="relative z-10">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-1 flex items-center gap-3">
+             <span className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><Orbit size={24} /></span>
+             Phaco Vãng Lai
+          </h2>
+          <p className="text-blue-200/70 text-sm mb-6 font-medium uppercase tracking-wider">
+            Tổng Doanh Thu ({data.summary?.label || '...'})
+          </p>
+          
+          <div className="flex items-end gap-3">
+            <h3 className="text-3xl md:text-5xl font-bold text-white tracking-tight drop-shadow-md">
+                {formatCurrency(summaryData.totalRevenue)}
+            </h3>
+            {summaryData.percent !== null && <div className="mb-2"><GrowthBadge value={summaryData.percent} /></div>}
+          </div>
 
-        <div className="flex items-center mt-2 md:mt-3 text-[11px] md:text-sm text-gray-500 gap-2 md:gap-3">
-            {summaryData.percent !== null && <GrowthBadge value={summaryData.percent} />}
+          <div className="flex items-center mt-2 text-xs md:text-sm text-gray-400 font-medium">
             {summaryData.compareRevenue !== null 
-                ? (<span>So với kỳ trước: <span className="text-gray-300 font-medium">{formatCurrency(summaryData.compareRevenue)}</span></span>)
+                ? (<span>So với kỳ trước: <span className="text-gray-300">{formatCurrency(summaryData.compareRevenue)}</span></span>)
                 : <span className="italic opacity-50">Không có dữ liệu so sánh</span>
             }
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <ProductCard 
-              title="Gói Cơ bản" subtitle="Dòng phổ thông" icon={Package} badge="TIÊU CHUẨN" color="blue"
-              label1="Doanh thu Bảo hiểm" val1={summaryData.basic.insRev} growth1={summaryData.basic.insGrowth}
-              label2="Doanh thu Bệnh nhân" val2={summaryData.basic.patRev} growth2={summaryData.basic.patGrowth}
-              details={summaryData.basic.details} formatCurrency={formatCurrency} 
+              title="Gói Cơ bản" subtitle="Phổ thông" icon={Package} badge="TIÊU CHUẨN" color="blue"
+              count={summaryData.basic?.sales || 0}
+              val1={summaryData.basic?.insRev || 0} label1="Doanh thu Bảo hiểm"
+              val2={summaryData.basic?.patRev || 0} label2="Doanh thu Bệnh nhân"
+              details={summaryData.basic?.details || []} formatCurrency={formatCurrency}
           />
           <ProductCard 
-              title="Gói Cao cấp" subtitle="Dòng chuyên sâu" icon={Users} badge="CAO CẤP" color="purple"
-              label1="Doanh thu Bảo hiểm" val1={summaryData.premium.insRev} growth1={summaryData.premium.insGrowth}
-              label2="Doanh thu Bệnh nhân" val2={summaryData.premium.patRev} growth2={summaryData.premium.patGrowth}
-              details={summaryData.premium.details} formatCurrency={formatCurrency} 
+              title="Gói Cao cấp" subtitle="Chuyên sâu" icon={Users} badge="CAO CẤP" color="purple"
+              count={summaryData.premium?.sales || 0}
+              val1={summaryData.premium?.insRev || 0} label1="Doanh thu Bảo hiểm"
+              val2={summaryData.premium?.patRev || 0} label2="Doanh thu Bệnh nhân"
+              details={summaryData.premium?.details || []} formatCurrency={formatCurrency}
           />
       </div>
-    </>
+    </div>
   );
 };
-
 export default PhacoVangLai;
