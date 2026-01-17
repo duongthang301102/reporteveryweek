@@ -31,7 +31,7 @@ const PhacoVangLai = ({ data, formatCurrency }) => {
              Phaco Vãng Lai
           </h2>
           <p className="text-blue-200/70 text-sm mb-6 font-medium uppercase tracking-wider">
-            Tổng Doanh Thu ({data.summary?.label || '...'})
+            {data.summary?.label || '...'}
           </p>
           
           <div className="flex items-end gap-3">

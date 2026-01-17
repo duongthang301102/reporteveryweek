@@ -1,6 +1,6 @@
 import React from 'react';
 import ProductCard from '../components/ProductCard';
-import { Package, Users, TrendingUp, TrendingDown, Building2, Orbit, Satellite } from 'lucide-react';
+import { Package, Users, TrendingUp, TrendingDown, Orbit, Satellite } from 'lucide-react';
 
 const PhacoPKVT = ({ data, formatCurrency }) => {
   const GrowthBadge = ({ value }) => {
@@ -14,11 +14,11 @@ const PhacoPKVT = ({ data, formatCurrency }) => {
     );
   };
 
-  // [SỬA LỖI QUAN TRỌNG]
-  // Lấy thẳng data, không chấm .phacoTuyen nữa vì đây là trang riêng
+  // [SỬA LỖI QUAN TRỌNG]: Lấy summary từ data
   const summaryData = data; 
-  
-  // Kiểm tra kỹ hơn: phải có summaryData VÀ có thuộc tính totalRevenue thì mới render
+  // Biến summary chứa label ngày tháng được truyền từ App.jsx
+  const summaryLabel = data?.summary?.label; 
+
   if (!summaryData || summaryData.totalRevenue === undefined) {
       return <div className="text-gray-500 p-8 text-center italic">Đang tải hoặc chưa có dữ liệu...</div>;
   }
@@ -33,9 +33,9 @@ const PhacoPKVT = ({ data, formatCurrency }) => {
              Phaco - PKVT
           </h2>
           
-          {/* [SỬA LỖI] Bỏ data.summary.label để tránh lỗi undefined */}
-          <p className="text-cyan-200/70 text-sm mb-6 font-medium uppercase tracking-wider">
-            Tổng Doanh Thu
+          {/* [HIỂN THỊ LABEL NGÀY THÁNG] */}
+          <p className="text-indigo-200/70 text-sm mb-4 font-medium uppercase tracking-wider">
+             {summaryLabel || '...'}
           </p>
           
           <div className="flex items-end gap-3">
@@ -83,4 +83,5 @@ const PhacoPKVT = ({ data, formatCurrency }) => {
     </div>
   );
 };
+
 export default PhacoPKVT;
