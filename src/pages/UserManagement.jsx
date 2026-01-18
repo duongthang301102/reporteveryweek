@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, Edit, Save, X, Shield, CheckCircle, Mail, FileUp, MoreVertical } from 'lucide-react';
+import { Users, Plus, Trash2, Edit, Save, X, Shield, CheckCircle, Mail, FileUp, MoreVertical, Loader2 } from 'lucide-react';
+import { getAllUsers, saveUserToFireBase, deleteUserFromFireBase } from '../db'; // Import hàm mới
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     
@@ -15,42 +17,48 @@ const UserManagement = () => {
         permissions: [] 
     });
 
-    useEffect(() => {
-        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-        if (storedUsers.length === 0) {
+    // Hàm tải dữ liệu từ Firebase
+    const loadUsers = async () => {
+        setIsLoading(true);
+        const data = await getAllUsers();
+        
+        // Nếu chưa có user nào trên mây, tạo admin mặc định
+        if (data.length === 0) {
             const defaultAdmin = { username: 'admin', password: '123', name: 'Quản Trị Viên', role: 'admin', permissions: [] };
+            await saveUserToFireBase(defaultAdmin);
             setUsers([defaultAdmin]);
-            localStorage.setItem('users', JSON.stringify([defaultAdmin]));
         } else {
-            setUsers(storedUsers);
+            setUsers(data);
         }
-    }, []);
-
-    const saveToLocal = (newUsers) => {
-        setUsers(newUsers);
-        localStorage.setItem('users', JSON.stringify(newUsers));
+        setIsLoading(false);
     };
 
-    const handleSubmit = (e) => {
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (editingUser) {
-            const updated = users.map(u => u.username === editingUser.username ? { ...formData } : u);
-            saveToLocal(updated);
-        } else {
-            if (users.some(u => u.username === formData.username)) {
-                alert('Tên đăng nhập đã tồn tại!');
-                return;
-            }
-            saveToLocal([...users, formData]);
+        
+        // Nếu là thêm mới, kiểm tra trùng trên giao diện (Firebase setDoc sẽ tự đè nếu trùng, nhưng cảnh báo cho chắc)
+        if (!editingUser && users.some(u => u.username === formData.username)) {
+            alert('Tên đăng nhập đã tồn tại! Vui lòng chọn tên khác.');
+            return;
         }
+
+        // Lưu lên Firebase
+        await saveUserToFireBase(formData);
+        
+        // Tải lại danh sách
+        await loadUsers();
         closeModal();
     };
 
-    const handleDelete = (username) => {
+    const handleDelete = async (username) => {
         if (username === 'admin') { alert('Không thể xóa tài khoản Admin gốc!'); return; }
         if (window.confirm(`Bạn chắc chắn muốn xóa tài khoản: ${username}?`)) {
-            const updated = users.filter(u => u.username !== username);
-            saveToLocal(updated);
+            await deleteUserFromFireBase(username);
+            await loadUsers();
         }
     };
 
@@ -86,30 +94,19 @@ const UserManagement = () => {
         { key: 'view_data', label: 'Xem Dữ Liệu Chi Tiết' },
     ];
 
-    // --- COMPONENT HIỂN THỊ QUYỀN HẠN ---
     const PermissionsTags = ({ user }) => {
         if (user.role === 'admin') return <span className="text-xs text-purple-400 font-medium italic">Toàn quyền hệ thống</span>;
-        
         const countMenu = user.permissions?.filter(p => p.startsWith('view_')).length || 0;
-        
         return (
             <div className="flex flex-wrap gap-2">
-                {user.permissions?.includes('import') && (
-                    <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1">
-                        <FileUp size={10} /> Import
-                    </span>
-                )}
-                {user.permissions?.includes('send_email') && (
-                    <span className="px-2 py-1 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[10px] font-bold flex items-center gap-1">
-                        <Mail size={10} /> Email
-                    </span>
-                )}
-                <span className="px-2 py-1 rounded bg-gray-700/50 text-gray-300 border border-gray-600/30 text-[10px] font-medium">
-                    Xem {countMenu} menu
-                </span>
+                {user.permissions?.includes('import') && <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1"><FileUp size={10} /> Import</span>}
+                {user.permissions?.includes('send_email') && <span className="px-2 py-1 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[10px] font-bold flex items-center gap-1"><Mail size={10} /> Email</span>}
+                <span className="px-2 py-1 rounded bg-gray-700/50 text-gray-300 border border-gray-600/30 text-[10px] font-medium">Xem {countMenu} menu</span>
             </div>
         );
     };
+
+    if (isLoading) return <div className="text-white flex items-center justify-center h-64"><Loader2 className="animate-spin mr-2"/> Đang đồng bộ tài khoản...</div>;
 
     return (
         <div className="animate-fade-in-up pb-20">
@@ -118,16 +115,16 @@ const UserManagement = () => {
                 <div>
                    <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
                        <span className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><Users size={20} md:size={24} /></span> 
-                       Quản Lý Tài Khoản
+                       Quản Lý Tài Khoản (Cloud Sync)
                    </h2>
-                   <p className="text-gray-400 text-xs md:text-sm mt-1 ml-1">Danh sách nhân sự & phân quyền</p>
+                   <p className="text-gray-400 text-xs md:text-sm mt-1 ml-1">Dữ liệu được đồng bộ trên mọi thiết bị</p>
                 </div>
                 <button onClick={() => openModal()} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm">
                     <Plus size={18} strokeWidth={3} /> Thêm Tài Khoản
                 </button>
             </div>
 
-            {/* --- VIEW 1: DESKTOP TABLE (Hidden on Mobile) --- */}
+            {/* --- VIEW 1: DESKTOP TABLE --- */}
             <div className="hidden md:block bg-[#1C1E26] border border-gray-800 rounded-xl overflow-hidden shadow-lg">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-[#13151A] text-gray-400 uppercase text-xs font-bold">
@@ -167,11 +164,10 @@ const UserManagement = () => {
                 </table>
             </div>
 
-            {/* --- VIEW 2: MOBILE CARDS (Visible on Mobile) --- */}
+            {/* --- VIEW 2: MOBILE CARDS --- */}
             <div className="md:hidden space-y-4">
                 {users.map((user) => (
                     <div key={user.username} className="bg-[#1C1E26] border border-gray-800 rounded-xl p-4 shadow-md flex flex-col gap-3">
-                        {/* Card Header */}
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-3">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-md ${user.role === 'admin' ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
@@ -186,27 +182,19 @@ const UserManagement = () => {
                                 {user.role === 'admin' ? 'Admin' : 'Staff'}
                             </span>
                         </div>
-
-                        {/* Permissions */}
                         <div className="bg-[#13151A] rounded-lg p-3 border border-gray-800/50">
                             <p className="text-[10px] uppercase font-bold text-gray-500 mb-2">Quyền hạn</p>
                             <PermissionsTags user={user} />
                         </div>
-
-                        {/* Actions */}
                         <div className="flex gap-2 pt-1">
-                            <button onClick={() => openModal(user)} className="flex-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/20 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-                                <Edit size={14} /> Chỉnh sửa
-                            </button>
-                            <button onClick={() => handleDelete(user.username)} className="flex-1 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/20 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-                                <Trash2 size={14} /> Xóa
-                            </button>
+                            <button onClick={() => openModal(user)} className="flex-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/20 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors"><Edit size={14} /> Chỉnh sửa</button>
+                            <button onClick={() => handleDelete(user.username)} className="flex-1 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/20 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors"><Trash2 size={14} /> Xóa</button>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* MODAL FORM (Responsive) */}
+            {/* MODAL FORM (Giữ nguyên form UI của bạn, chỉ đổi logic submit) */}
             {isModalOpen && (
                 <>
                     <div className="fixed inset-0 bg-black/80 z-50 backdrop-blur-sm transition-opacity" onClick={closeModal}></div>
@@ -221,75 +209,26 @@ const UserManagement = () => {
                         
                         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-500 block mb-1.5 uppercase tracking-wider">Họ và tên</label>
-                                    <input type="text" required className="w-full bg-[#13151A] border border-gray-700 rounded-xl p-3 text-white focus:border-blue-500 outline-none transition-colors text-sm" 
-                                        value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Vd: Nguyễn Văn A" />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-500 block mb-1.5 uppercase tracking-wider">Tên đăng nhập</label>
-                                    <input type="text" required disabled={!!editingUser} className="w-full bg-[#13151A] border border-gray-700 rounded-xl p-3 text-white focus:border-blue-500 outline-none disabled:opacity-50 text-sm disabled:cursor-not-allowed" 
-                                        value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} placeholder="username" />
-                                </div>
+                                <div><label className="text-[10px] font-bold text-gray-500 block mb-1.5 uppercase tracking-wider">Họ và tên</label><input type="text" required className="w-full bg-[#13151A] border border-gray-700 rounded-xl p-3 text-white focus:border-blue-500 outline-none transition-colors text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Vd: Nguyễn Văn A" /></div>
+                                <div><label className="text-[10px] font-bold text-gray-500 block mb-1.5 uppercase tracking-wider">Tên đăng nhập</label><input type="text" required disabled={!!editingUser} className="w-full bg-[#13151A] border border-gray-700 rounded-xl p-3 text-white focus:border-blue-500 outline-none disabled:opacity-50 text-sm disabled:cursor-not-allowed" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} placeholder="username" /></div>
                             </div>
-                            
-                            <div>
-                                <label className="text-[10px] font-bold text-gray-500 block mb-1.5 uppercase tracking-wider">Mật khẩu</label>
-                                <input type="text" required className="w-full bg-[#13151A] border border-gray-700 rounded-xl p-3 text-white focus:border-blue-500 outline-none text-sm" 
-                                    value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="******" />
-                            </div>
-                            
+                            <div><label className="text-[10px] font-bold text-gray-500 block mb-1.5 uppercase tracking-wider">Mật khẩu</label><input type="text" required className="w-full bg-[#13151A] border border-gray-700 rounded-xl p-3 text-white focus:border-blue-500 outline-none text-sm" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="******" /></div>
                             <div>
                                 <label className="text-[10px] font-bold text-gray-500 block mb-1.5 uppercase tracking-wider">Vai trò</label>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button type="button" onClick={() => setFormData({...formData, role: 'user'})} 
-                                        className={`p-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.role === 'user' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[#13151A] border-gray-700 text-gray-400 hover:border-gray-500'}`}>
-                                        <Users size={16}/> Nhân viên
-                                    </button>
-                                    <button type="button" onClick={() => setFormData({...formData, role: 'admin'})}
-                                        className={`p-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.role === 'admin' ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-[#13151A] border-gray-700 text-gray-400 hover:border-gray-500'}`}>
-                                        <Shield size={16}/> Admin
-                                    </button>
+                                    <button type="button" onClick={() => setFormData({...formData, role: 'user'})} className={`p-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.role === 'user' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[#13151A] border-gray-700 text-gray-400 hover:border-gray-500'}`}><Users size={16}/> Nhân viên</button>
+                                    <button type="button" onClick={() => setFormData({...formData, role: 'admin'})} className={`p-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.role === 'admin' ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-[#13151A] border-gray-700 text-gray-400 hover:border-gray-500'}`}><Shield size={16}/> Admin</button>
                                 </div>
                             </div>
-
                             {formData.role === 'user' && (
                                 <div className="space-y-4 pt-2">
-                                    {/* Quyền chức năng */}
-                                    <div className="bg-[#13151A] p-4 rounded-xl border border-gray-800">
-                                        <label className="text-[10px] font-bold text-emerald-500 block mb-3 uppercase tracking-wider">Chức năng đặc biệt</label>
-                                        <div className="flex flex-col gap-3">
-                                            <label className="flex items-center gap-3 cursor-pointer hover:text-white text-gray-300 text-sm transition-colors">
-                                                <input type="checkbox" checked={formData.permissions?.includes('import')} onChange={() => togglePermission('import')} className="accent-emerald-500 w-4 h-4 rounded"/>
-                                                Được phép Nhập file Excel
-                                            </label>
-                                            <label className="flex items-center gap-3 cursor-pointer hover:text-white text-gray-300 text-sm transition-colors">
-                                                <input type="checkbox" checked={formData.permissions?.includes('send_email')} onChange={() => togglePermission('send_email')} className="accent-orange-500 w-4 h-4 rounded"/>
-                                                Được phép Gửi Email Báo Cáo
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {/* Quyền xem Menu */}
-                                    <div className="bg-[#13151A] p-4 rounded-xl border border-gray-800">
-                                        <label className="text-[10px] font-bold text-blue-500 block mb-3 uppercase tracking-wider">Menu được phép xem</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {menuPermissions.map(perm => (
-                                                <label key={perm.key} className="flex items-center gap-2 cursor-pointer hover:text-white text-gray-300 text-xs transition-colors p-1 rounded hover:bg-white/5">
-                                                    <input type="checkbox" checked={formData.permissions?.includes(perm.key)} onChange={() => togglePermission(perm.key)} className="accent-blue-500 w-3.5 h-3.5 rounded"/>
-                                                    {perm.label}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    <div className="bg-[#13151A] p-4 rounded-xl border border-gray-800"><label className="text-[10px] font-bold text-emerald-500 block mb-3 uppercase tracking-wider">Chức năng đặc biệt</label><div className="flex flex-col gap-3"><label className="flex items-center gap-3 cursor-pointer hover:text-white text-gray-300 text-sm transition-colors"><input type="checkbox" checked={formData.permissions?.includes('import')} onChange={() => togglePermission('import')} className="accent-emerald-500 w-4 h-4 rounded"/> Được phép Nhập file Excel</label><label className="flex items-center gap-3 cursor-pointer hover:text-white text-gray-300 text-sm transition-colors"><input type="checkbox" checked={formData.permissions?.includes('send_email')} onChange={() => togglePermission('send_email')} className="accent-orange-500 w-4 h-4 rounded"/> Được phép Gửi Email Báo Cáo</label></div></div>
+                                    <div className="bg-[#13151A] p-4 rounded-xl border border-gray-800"><label className="text-[10px] font-bold text-blue-500 block mb-3 uppercase tracking-wider">Menu được phép xem</label><div className="grid grid-cols-2 gap-3">{menuPermissions.map(perm => (<label key={perm.key} className="flex items-center gap-2 cursor-pointer hover:text-white text-gray-300 text-xs transition-colors p-1 rounded hover:bg-white/5"><input type="checkbox" checked={formData.permissions?.includes(perm.key)} onChange={() => togglePermission(perm.key)} className="accent-blue-500 w-3.5 h-3.5 rounded"/> {perm.label}</label>))}</div></div>
                                 </div>
                             )}
-
                             <div className="pt-4 border-t border-gray-700 flex justify-end gap-3 sticky bottom-0 bg-[#1C1E26] z-10 pb-1">
                                 <button type="button" onClick={closeModal} className="px-5 py-2.5 text-sm font-bold text-gray-400 hover:text-white transition bg-white/5 hover:bg-white/10 rounded-xl">Hủy bỏ</button>
-                                <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 flex items-center gap-2 transition-all">
-                                    <Save size={16} /> Lưu Thông Tin
-                                </button>
+                                <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 flex items-center gap-2 transition-all"><Save size={16} /> Lưu Thông Tin</button>
                             </div>
                         </form>
                     </div>

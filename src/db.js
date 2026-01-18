@@ -6,8 +6,10 @@ import {
   getDocs, 
   writeBatch, 
   doc,
-  query, // [MỚI] Để tạo câu lệnh lọc
-  where  // [MỚI] Để tìm theo điều kiện
+  query, // Để tạo câu lệnh lọc
+  where, // Để tìm theo điều kiện
+  setDoc, // [MỚI] Để lưu user theo ID chỉ định
+  deleteDoc // [MỚI] Để xóa user
 } from "firebase/firestore";
 
 // Cấu hình từ dự án của bạn
@@ -24,7 +26,12 @@ const firebaseConfig = {
 // Khởi tạo
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const COLLECTION_NAME = "transactions"; // Tên bảng dữ liệu trên mây
+const COLLECTION_NAME = "transactions"; // Tên bảng dữ liệu giao dịch
+const USERS_COLLECTION = "users";       // Tên bảng dữ liệu tài khoản
+
+// ============================================================
+// PHẦN 1: QUẢN LÝ DỮ LIỆU GIAO DỊCH (TRANSACTIONS)
+// ============================================================
 
 // --- 1. LẤY TOÀN BỘ DỮ LIỆU ---
 export const getAllTransactions = async () => {
@@ -41,7 +48,7 @@ export const getAllTransactions = async () => {
     return data;
   } catch (error) {
     console.error("Lỗi khi tải dữ liệu:", error);
-    alert("Lỗi tải dữ liệu từ Server! Kiểm tra kết nối mạng.");
+    // alert("Lỗi tải dữ liệu từ Server! Kiểm tra kết nối mạng."); // Có thể comment lại để đỡ phiền nếu lỗi nhỏ
     return [];
   }
 };
@@ -99,7 +106,7 @@ export const clearTransactions = async () => {
   }
 };
 
-// --- 4. [MỚI] XÓA DỮ LIỆU THEO LOẠI (Menu cụ thể) ---
+// --- 4. XÓA DỮ LIỆU THEO LOẠI (Menu cụ thể) ---
 export const clearTransactionsByType = async (type) => {
   try {
     // 1. Tạo Query: Chỉ lấy những dòng có cột 'type' trùng với loại muốn xóa
@@ -133,5 +140,49 @@ export const clearTransactionsByType = async (type) => {
     console.error(`Lỗi khi xóa loại ${type}:`, error);
     alert(`Có lỗi khi xóa dữ liệu mục ${type}!`);
     throw error;
+  }
+};
+
+// ============================================================
+// PHẦN 2: QUẢN LÝ TÀI KHOẢN (USERS) - [MỚI TÍCH HỢP]
+// ============================================================
+
+// 1. Lấy danh sách tất cả users
+export const getAllUsers = async () => {
+  try {
+    const q = query(collection(db, USERS_COLLECTION));
+    const querySnapshot = await getDocs(q);
+    const users = [];
+    querySnapshot.forEach((doc) => {
+      users.push(doc.data());
+    });
+    return users;
+  } catch (e) {
+    console.error("Lỗi lấy danh sách user: ", e);
+    return [];
+  }
+};
+
+// 2. Lưu hoặc Cập nhật user (Dùng username làm ID để tránh trùng)
+export const saveUserToFireBase = async (userData) => {
+  try {
+    // setDoc sẽ ghi đè nếu ID (username) đã tồn tại -> Dùng để Thêm mới và Sửa luôn
+    // Cấu trúc: users/username
+    await setDoc(doc(db, USERS_COLLECTION, userData.username), userData);
+    return true;
+  } catch (e) {
+    console.error("Lỗi lưu user: ", e);
+    return false;
+  }
+};
+
+// 3. Xóa user
+export const deleteUserFromFireBase = async (username) => {
+  try {
+    await deleteDoc(doc(db, USERS_COLLECTION, username));
+    return true;
+  } catch (e) {
+    console.error("Lỗi xóa user: ", e);
+    return false;
   }
 };
